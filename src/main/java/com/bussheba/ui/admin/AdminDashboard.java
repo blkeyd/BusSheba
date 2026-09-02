@@ -118,29 +118,24 @@ public class AdminDashboard extends JFrame {
                 + "margin:10,0,10,0");
     }
 
-    // TODO: replace with `new ManageBusesPanel().setVisible(true);` once that screen exists.
     private void onManageBuses() {
-        JOptionPane.showMessageDialog(this, "Manage Buses screen coming soon.");
+        new ManageBusesPanel().setVisible(true);
     }
 
-    // TODO: replace with `new ManageRoutesPanel().setVisible(true);` once that screen exists.
     private void onManageRoutes() {
-        JOptionPane.showMessageDialog(this, "Manage Routes screen coming soon.");
+        new ManageRoutesPanel().setVisible(true);
     }
 
-    // TODO: replace with `new ManageTripsPanel().setVisible(true);` once that screen exists.
     private void onManageTrips() {
-        JOptionPane.showMessageDialog(this, "Manage Trips screen coming soon.");
+        new ManageTripsPanel().setVisible(true);
     }
 
-    // TODO: replace with `new ManageUsersPanel().setVisible(true);` once that screen exists.
     private void onManageUsers() {
-        JOptionPane.showMessageDialog(this, "Manage Users screen coming soon.");
+        new ManageUsersPanel(currentUser).setVisible(true);
     }
 
-    // TODO: replace with a bookings/revenue view once that screen exists.
     private void onViewBookings() {
-        JOptionPane.showMessageDialog(this, "Bookings & Revenue screen coming soon.");
+        new BookingsRevenuePanel().setVisible(true);
     }
 
     private void onLogout() {
