@@ -22,10 +22,10 @@ import java.sql.SQLException;
 public class DBConnection {
 
     private static final String HOST = "localhost";
-    private static final String PORT = "5432";
-    private static final String DB_NAME = "bussheba";      // TODO: replace with your actual DB name
+    private static final String PORT = "7000";
+    private static final String DB_NAME = "busSheba";      // TODO: replace with your actual DB name
     private static final String USER = "postgres";         // TODO: replace with your actual username
-    private static final String PASSWORD = "your_password"; // TODO: replace with your actual password
+    private static final String PASSWORD = "5659"; // TODO: replace with your actual password
 
     private static final String URL =
             "jdbc:postgresql://" + HOST + ":" + PORT + "/" + DB_NAME;

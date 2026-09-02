@@ -26,6 +26,20 @@
             <artifactId>postgresql</artifactId>
             <version>42.7.3</version>
         </dependency>
+
+        <!-- FlatLaf: modern Look & Feel used by LoginFrame (includes FlatMacDarkLaf) -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.5.2</version>
+        </dependency>
+
+        <!-- Roboto font bundled with FlatLaf, used by LoginFrame's typography -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf-fonts-roboto</artifactId>
+            <version>2.137</version>
+        </dependency>
     </dependencies>
 
     <build>
