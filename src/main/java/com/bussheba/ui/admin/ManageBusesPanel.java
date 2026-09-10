@@ -1,5 +1,7 @@
 package com.bussheba.ui.admin;
 
+import com.bussheba.ui.components.Theme;
+
 import com.bussheba.dao.BusDAO;
 import com.bussheba.model.Bus;
 import com.formdev.flatlaf.FlatClientProperties;
@@ -45,12 +47,12 @@ public class ManageBusesPanel extends JFrame {
         setSize(700, 550);
         setLocationRelativeTo(null);
 
-        getContentPane().setBackground(new Color(24, 24, 27));
+        getContentPane().setBackground(Theme.BG_LIGHT);
         setLayout(new BorderLayout(10, 10));
 
         JLabel lblTitle = new JLabel("Manage Buses");
         lblTitle.setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 20));
-        lblTitle.setForeground(new Color(244, 244, 245));
+        lblTitle.setForeground(Theme.TEXT_DARK);
         lblTitle.setBorder(BorderFactory.createEmptyBorder(15, 15, 5, 15));
         add(lblTitle, BorderLayout.NORTH);
 
@@ -82,7 +84,7 @@ public class ManageBusesPanel extends JFrame {
 
     private JPanel buildFormPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(new Color(24, 24, 27));
+        panel.setBackground(Theme.BG_LIGHT);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 15, 15, 15));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -112,7 +114,7 @@ public class ManageBusesPanel extends JFrame {
         panel.add(txtTotalSeats, gbc);
 
         JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        buttonRow.setBackground(new Color(24, 24, 27));
+        buttonRow.setBackground(Theme.BG_LIGHT);
 
         btnClear = new JButton("Clear / New");
         styleSecondaryButton(btnClear);
@@ -260,9 +262,9 @@ public class ManageBusesPanel extends JFrame {
         field.putClientProperty(FlatClientProperties.STYLE, ""
                 + "arc:10;"
                 + "margin:6,10,6,10;"
-                + "background:rgb(39,39,42);"
-                + "borderColor:rgb(63,63,70);"
-                + "focusedBorderColor:rgb(99,102,241)");
+                + "background:rgb(255,255,255);"
+                + "borderColor:rgb(224,224,224);"
+                + "focusedBorderColor:rgb(0,121,107)");
     }
 
     private void stylePrimaryButton(JButton button) {
@@ -270,15 +272,15 @@ public class ManageBusesPanel extends JFrame {
         button.setForeground(Color.WHITE);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.putClientProperty(FlatClientProperties.STYLE, ""
-                + "arc:10;background:rgb(99,102,241);hoverBackground:rgb(79,70,229);borderWidth:0;margin:8,16,8,16");
+                + "arc:10;background:rgb(230,126,34);hoverBackground:rgb(202,106,18);borderWidth:0;margin:8,16,8,16");
     }
 
     private void styleSecondaryButton(JButton button) {
         button.setFont(new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 13));
-        button.setForeground(new Color(244, 244, 245));
+        button.setForeground(Theme.TEXT_DARK);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.putClientProperty(FlatClientProperties.STYLE, ""
-                + "arc:10;background:rgb(39,39,42);hoverBackground:rgb(63,63,70);borderWidth:0;margin:8,16,8,16");
+                + "arc:10;background:rgb(224,224,224);hoverBackground:rgb(200,200,200);borderWidth:0;margin:8,16,8,16");
     }
 
     private void styleDangerButton(JButton button) {
@@ -286,6 +288,6 @@ public class ManageBusesPanel extends JFrame {
         button.setForeground(Color.WHITE);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.putClientProperty(FlatClientProperties.STYLE, ""
-                + "arc:10;background:rgb(220,38,38);hoverBackground:rgb(185,28,28);borderWidth:0;margin:8,16,8,16");
+                + "arc:10;background:rgb(211,47,47);hoverBackground:rgb(183,28,28);borderWidth:0;margin:8,16,8,16");
     }
 }

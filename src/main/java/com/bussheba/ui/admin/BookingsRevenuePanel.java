@@ -1,5 +1,7 @@
 package com.bussheba.ui.admin;
 
+import com.bussheba.ui.components.Theme;
+
 import com.bussheba.dao.BookingDAO;
 import com.bussheba.dao.RouteDAO;
 import com.bussheba.dao.SeatDAO;
@@ -55,17 +57,17 @@ public class BookingsRevenuePanel extends JFrame {
         setSize(850, 550);
         setLocationRelativeTo(null);
 
-        getContentPane().setBackground(new Color(24, 24, 27));
+        getContentPane().setBackground(Theme.BG_LIGHT);
         setLayout(new BorderLayout(10, 10));
 
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
-        headerPanel.setBackground(new Color(24, 24, 27));
+        headerPanel.setBackground(Theme.BG_LIGHT);
         headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 5, 15));
 
         JLabel lblTitle = new JLabel("All Bookings & Revenue");
         lblTitle.setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 20));
-        lblTitle.setForeground(new Color(244, 244, 245));
+        lblTitle.setForeground(Theme.TEXT_DARK);
         headerPanel.add(lblTitle);
 
         lblRevenue = new JLabel("Total Revenue (confirmed bookings): -");
@@ -76,7 +78,7 @@ public class BookingsRevenuePanel extends JFrame {
 
         lblCounts = new JLabel("-");
         lblCounts.setFont(new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 12));
-        lblCounts.setForeground(new Color(161, 161, 170));
+        lblCounts.setForeground(Theme.TEXT_MUTED);
         headerPanel.add(lblCounts);
 
         add(headerPanel, BorderLayout.NORTH);

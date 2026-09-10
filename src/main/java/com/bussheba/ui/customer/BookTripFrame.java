@@ -9,6 +9,7 @@ import com.bussheba.model.Seat;
 import com.bussheba.model.Trip;
 import com.bussheba.model.User;
 import com.bussheba.service.BookingService;
+import com.bussheba.ui.components.Theme;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.fonts.roboto.FlatRobotoFont;
 
@@ -18,15 +19,12 @@ import java.awt.*;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.TreeSet;
 
 /**
- * Customer flow: search a route (origin/destination) -> pick a trip from
- * the results -> pick an available seat -> confirm booking.
- *
- * Deliberately three DAOs + one service, no single "TripSearchService":
- * this screen is simple enough that going straight to RouteDAO/TripDAO/
- * SeatDAO for reads is fine; only the actual booking write needs the
- * transactional BookingService.
+ * Customer flow, "railway ticketing" style: pick From/To from dropdowns
+ * (populated from actual route data, not free text) -> results table of
+ * buses with time and price -> pick a trip -> pick a seat -> confirm.
  */
 public class BookTripFrame extends JFrame {
 
@@ -38,8 +36,8 @@ public class BookTripFrame extends JFrame {
     private final SeatDAO seatDAO = new SeatDAO();
     private final BookingService bookingService = new BookingService();
 
-    private JTextField txtOrigin;
-    private JTextField txtDestination;
+    private JComboBox<String> cmbFrom;
+    private JComboBox<String> cmbTo;
     private JButton btnSearch;
 
     private JTable tripTable;
@@ -57,53 +55,91 @@ public class BookTripFrame extends JFrame {
     public BookTripFrame(User currentUser) {
         this.currentUser = currentUser;
         initUI();
+        loadCityDropdowns();
     }
 
     private void initUI() {
         setTitle("BusSheba - Book a Trip");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(700, 650);
+        setSize(750, 680);
         setLocationRelativeTo(null);
 
-        getContentPane().setBackground(new Color(24, 24, 27));
-        setLayout(new BorderLayout(10, 10));
+        getContentPane().setBackground(Theme.BG_LIGHT);
+        setLayout(new BorderLayout(0, 0));
 
-        add(buildSearchPanel(), BorderLayout.NORTH);
-        add(buildResultsPanel(), BorderLayout.CENTER);
-        add(buildSeatPanel(), BorderLayout.SOUTH);
+        add(buildHeader(), BorderLayout.NORTH);
+
+        JPanel centerWrap = new JPanel(new BorderLayout(10, 10));
+        centerWrap.setBackground(Theme.BG_LIGHT);
+        centerWrap.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        centerWrap.add(buildResultsPanel(), BorderLayout.CENTER);
+        centerWrap.add(buildSeatPanel(), BorderLayout.SOUTH);
+        add(centerWrap, BorderLayout.CENTER);
     }
 
-    private JPanel buildSearchPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(new Color(24, 24, 27));
-        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 10, 15));
+    private JPanel buildHeader() {
+        JPanel header = new JPanel();
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setBackground(Theme.TEAL_PRIMARY);
+        header.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+
+        JLabel lblTitle = new JLabel("Search Buses");
+        lblTitle.setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 18));
+        lblTitle.setForeground(Theme.TEXT_ON_TEAL);
+        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        header.add(lblTitle);
+        header.add(Box.createVerticalStrut(12));
+
+        JPanel searchRow = new JPanel(new GridBagLayout());
+        searchRow.setOpaque(false);
+        searchRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.insets = new Insets(0, 0, 0, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        txtOrigin = new JTextField();
-        styleField(txtOrigin, "From");
+        cmbFrom = new JComboBox<>();
+        styleCombo(cmbFrom);
         gbc.gridx = 0;
-        gbc.gridy = 0;
         gbc.weightx = 1;
-        panel.add(txtOrigin, gbc);
+        searchRow.add(labeled("From", cmbFrom), gbc);
 
-        txtDestination = new JTextField();
-        styleField(txtDestination, "To");
+        cmbTo = new JComboBox<>();
+        styleCombo(cmbTo);
         gbc.gridx = 1;
-        panel.add(txtDestination, gbc);
+        searchRow.add(labeled("To", cmbTo), gbc);
 
-        btnSearch = new JButton("Search");
-        stylePrimaryButton(btnSearch);
+        btnSearch = new JButton("Search Buses");
+        btnSearch.setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 13));
+        btnSearch.setForeground(Color.WHITE);
+        btnSearch.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnSearch.putClientProperty(FlatClientProperties.STYLE, ""
+                + "arc:8;background:rgb(230,126,34);hoverBackground:rgb(202,106,18);borderWidth:0;margin:10,20,10,20");
         btnSearch.addActionListener(e -> onSearch());
         gbc.gridx = 2;
         gbc.weightx = 0;
-        panel.add(btnSearch, gbc);
+        gbc.insets = new Insets(16, 0, 0, 0);
+        searchRow.add(btnSearch, gbc);
 
-        return panel;
+        header.add(searchRow);
+        return header;
     }
 
-    private JScrollPane buildResultsPanel() {
+    private JPanel labeled(String labelText, JComponent field) {
+        JPanel wrapper = new JPanel(new BorderLayout(0, 4));
+        wrapper.setOpaque(false);
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 11));
+        label.setForeground(new Color(224, 242, 241));
+        wrapper.add(label, BorderLayout.NORTH);
+        wrapper.add(field, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    private JPanel buildResultsPanel() {
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setBackground(Theme.CARD_WHITE);
+        wrap.setBorder(BorderFactory.createLineBorder(Theme.BORDER_LIGHT, 1, true));
+
         String[] columns = {"Bus", "Departure", "Arrival", "Price"};
         tripTableModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -112,7 +148,12 @@ public class BookTripFrame extends JFrame {
             }
         };
         tripTable = new JTable(tripTableModel);
-        tripTable.setRowHeight(28);
+        tripTable.setRowHeight(30);
+        tripTable.setFont(new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 13));
+        tripTable.getTableHeader().setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 12));
+        tripTable.getTableHeader().setBackground(Theme.TEAL_LIGHT);
+        tripTable.setSelectionBackground(Theme.TEAL_LIGHT);
+        tripTable.setSelectionForeground(Theme.TEXT_DARK);
         tripTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tripTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -121,38 +162,46 @@ public class BookTripFrame extends JFrame {
         });
 
         JScrollPane scrollPane = new JScrollPane(tripTable);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
-        return scrollPane;
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        wrap.add(scrollPane, BorderLayout.CENTER);
+        return wrap;
     }
 
     private JPanel buildSeatPanel() {
-        JPanel container = new JPanel(new BorderLayout(5, 5));
-        container.setBackground(new Color(24, 24, 27));
-        container.setBorder(BorderFactory.createEmptyBorder(10, 15, 15, 15));
+        JPanel container = new JPanel(new BorderLayout(5, 8));
+        container.setBackground(Theme.CARD_WHITE);
+        container.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Theme.BORDER_LIGHT, 1, true),
+                BorderFactory.createEmptyBorder(12, 15, 12, 15)));
 
         JLabel lblSeatsTitle = new JLabel("Select a trip above to see available seats");
         lblSeatsTitle.setFont(new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 12));
-        lblSeatsTitle.setForeground(new Color(161, 161, 170));
+        lblSeatsTitle.setForeground(Theme.TEXT_MUTED);
         container.add(lblSeatsTitle, BorderLayout.NORTH);
 
-        seatPanel = new JPanel(new GridLayout(0, 6, 6, 6));
-        seatPanel.setBackground(new Color(24, 24, 27));
+        seatPanel = new JPanel(new GridLayout(0, 6, 8, 8));
+        seatPanel.setBackground(Theme.CARD_WHITE);
         JScrollPane seatScroll = new JScrollPane(seatPanel);
         seatScroll.setPreferredSize(new Dimension(650, 180));
         seatScroll.setBorder(BorderFactory.createEmptyBorder());
         container.add(seatScroll, BorderLayout.CENTER);
 
         JPanel bottomRow = new JPanel(new BorderLayout());
-        bottomRow.setBackground(new Color(24, 24, 27));
+        bottomRow.setOpaque(false);
 
         lblSelectedSeat = new JLabel("No seat selected");
         lblSelectedSeat.setFont(new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 13));
-        lblSelectedSeat.setForeground(new Color(244, 244, 245));
+        lblSelectedSeat.setForeground(Theme.TEXT_DARK);
         bottomRow.add(lblSelectedSeat, BorderLayout.WEST);
 
         btnBook = new JButton("Confirm Booking");
-        stylePrimaryButton(btnBook);
+        btnBook.setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 13));
+        btnBook.setForeground(Color.WHITE);
+        btnBook.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnBook.setEnabled(false);
+        btnBook.putClientProperty(FlatClientProperties.STYLE, ""
+                + "arc:8;background:rgb(230,126,34);hoverBackground:rgb(202,106,18);"
+                + "disabledBackground:rgb(224,224,224);borderWidth:0;margin:8,16,8,16");
         btnBook.addActionListener(e -> onConfirmBooking());
         bottomRow.add(btnBook, BorderLayout.EAST);
 
@@ -160,13 +209,44 @@ public class BookTripFrame extends JFrame {
         return container;
     }
 
-    private void onSearch() {
-        String origin = txtOrigin.getText().trim();
-        String destination = txtDestination.getText().trim();
+    private void loadCityDropdowns() {
+        try {
+            List<Route> routes = routeDAO.findAll();
+            TreeSet<String> cities = new TreeSet<>();
+            for (Route route : routes) {
+                cities.add(route.getOrigin());
+                cities.add(route.getDestination());
+            }
 
-        if (origin.isEmpty() || destination.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please enter both origin and destination.",
-                    "Missing info", JOptionPane.WARNING_MESSAGE);
+            cmbFrom.removeAllItems();
+            cmbTo.removeAllItems();
+            for (String city : cities) {
+                cmbFrom.addItem(city);
+                cmbTo.addItem(city);
+            }
+
+            if (cmbTo.getItemCount() > 1) {
+                cmbTo.setSelectedIndex(1); // avoid From == To by default when possible
+            }
+
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Failed to load cities: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void onSearch() {
+        String origin = (String) cmbFrom.getSelectedItem();
+        String destination = (String) cmbTo.getSelectedItem();
+
+        if (origin == null || destination == null) {
+            JOptionPane.showMessageDialog(this, "No routes available yet.", "No routes", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (origin.equals(destination)) {
+            JOptionPane.showMessageDialog(this, "From and To can't be the same city.",
+                    "Invalid selection", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -221,7 +301,7 @@ public class BookTripFrame extends JFrame {
 
             if (seats.isEmpty()) {
                 JLabel lblNone = new JLabel("No seats configured for this trip yet.");
-                lblNone.setForeground(new Color(161, 161, 170));
+                lblNone.setForeground(Theme.TEXT_MUTED);
                 seatPanel.add(lblNone);
             }
 
@@ -232,12 +312,15 @@ public class BookTripFrame extends JFrame {
 
                 seatButton.setEnabled(available);
                 seatButton.setCursor(new Cursor(available ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
+
+                String bg = available
+                        ? "rgb(" + Theme.SEAT_AVAILABLE.getRed() + "," + Theme.SEAT_AVAILABLE.getGreen() + "," + Theme.SEAT_AVAILABLE.getBlue() + ")"
+                        : "rgb(" + Theme.SEAT_BOOKED.getRed() + "," + Theme.SEAT_BOOKED.getGreen() + "," + Theme.SEAT_BOOKED.getBlue() + ")";
+                String fg = available ? "white" : "rgb(150,150,150)";
+
                 seatButton.putClientProperty(FlatClientProperties.STYLE, ""
-                        + "arc:8;"
-                        + "borderWidth:0;"
-                        + "foreground:" + (available ? "rgb(244,244,245)" : "rgb(113,113,122)") + ";"
-                        + "background:" + (available ? "rgb(39,39,42)" : "rgb(24,24,27)") + ";"
-                        + "hoverBackground:rgb(99,102,241)");
+                        + "arc:8;borderWidth:0;foreground:" + fg + ";background:" + bg + ";"
+                        + "hoverBackground:rgb(230,126,34)");
 
                 if (available) {
                     seatButton.addActionListener(e -> onSeatClicked(seat, seatButton));
@@ -256,13 +339,12 @@ public class BookTripFrame extends JFrame {
     }
 
     private void onSeatClicked(Seat seat, JButton clickedButton) {
-        // Reset all seat button borders, then highlight the clicked one.
         for (Component comp : seatPanel.getComponents()) {
             if (comp instanceof JButton button) {
                 button.putClientProperty(FlatClientProperties.OUTLINE, null);
             }
         }
-        clickedButton.putClientProperty(FlatClientProperties.OUTLINE, "rgb(99,102,241)");
+        clickedButton.putClientProperty(FlatClientProperties.OUTLINE, "rgb(230,126,34)");
 
         selectedSeatId = seat.getId();
         selectedSeatNumber = seat.getSeatNumber();
@@ -299,12 +381,10 @@ public class BookTripFrame extends JFrame {
                     "Booking confirmed! Booking #" + booking.getId() + " - Seat " + selectedSeatNumber,
                     "Success", JOptionPane.INFORMATION_MESSAGE);
 
-            // Refresh the seat map so the just-booked seat shows as unavailable.
             loadSeatsForTrip(selectedTripId);
             resetSeatSelection();
 
         } catch (IllegalStateException ex) {
-            // Seat got taken by someone else between selection and click, or trip/seat mismatch.
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Booking Failed", JOptionPane.ERROR_MESSAGE);
             loadSeatsForTrip(selectedTripId);
             resetSeatSelection();
@@ -314,26 +394,9 @@ public class BookTripFrame extends JFrame {
         }
     }
 
-    private void styleField(JTextField field, String placeholder) {
-        field.setFont(new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 13));
-        field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, placeholder);
-        field.putClientProperty(FlatClientProperties.STYLE, ""
-                + "arc:10;"
-                + "margin:6,10,6,10;"
-                + "background:rgb(39,39,42);"
-                + "borderColor:rgb(63,63,70);"
-                + "focusedBorderColor:rgb(99,102,241)");
-    }
-
-    private void stylePrimaryButton(JButton button) {
-        button.setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 13));
-        button.setForeground(Color.WHITE);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.putClientProperty(FlatClientProperties.STYLE, ""
-                + "arc:10;"
-                + "background:rgb(99,102,241);"
-                + "hoverBackground:rgb(79,70,229);"
-                + "borderWidth:0;"
-                + "margin:8,16,8,16");
+    private void styleCombo(JComboBox<String> combo) {
+        combo.setFont(new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 13));
+        combo.putClientProperty(FlatClientProperties.STYLE, ""
+                + "arc:8;background:white;borderWidth:0");
     }
 }

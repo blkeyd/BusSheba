@@ -1,5 +1,7 @@
 package com.bussheba.ui.admin;
 
+import com.bussheba.ui.components.Theme;
+
 import com.bussheba.dao.UserDAO;
 import com.bussheba.model.Role;
 import com.bussheba.model.User;
@@ -43,12 +45,12 @@ public class ManageUsersPanel extends JFrame {
         setSize(700, 500);
         setLocationRelativeTo(null);
 
-        getContentPane().setBackground(new Color(24, 24, 27));
+        getContentPane().setBackground(Theme.BG_LIGHT);
         setLayout(new BorderLayout(10, 10));
 
         JLabel lblTitle = new JLabel("Manage Users");
         lblTitle.setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 20));
-        lblTitle.setForeground(new Color(244, 244, 245));
+        lblTitle.setForeground(Theme.TEXT_DARK);
         lblTitle.setBorder(BorderFactory.createEmptyBorder(15, 15, 5, 15));
         add(lblTitle, BorderLayout.NORTH);
 
@@ -73,7 +75,7 @@ public class ManageUsersPanel extends JFrame {
         add(scrollPane, BorderLayout.CENTER);
 
         JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        bottomRow.setBackground(new Color(24, 24, 27));
+        bottomRow.setBackground(Theme.BG_LIGHT);
         bottomRow.setBorder(BorderFactory.createEmptyBorder(0, 15, 15, 15));
 
         btnRefresh = new JButton("Refresh");
@@ -198,15 +200,15 @@ public class ManageUsersPanel extends JFrame {
         button.setForeground(Color.WHITE);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.putClientProperty(FlatClientProperties.STYLE, ""
-                + "arc:10;background:rgb(99,102,241);hoverBackground:rgb(79,70,229);borderWidth:0;margin:8,16,8,16");
+                + "arc:10;background:rgb(230,126,34);hoverBackground:rgb(202,106,18);borderWidth:0;margin:8,16,8,16");
     }
 
     private void styleSecondaryButton(JButton button) {
         button.setFont(new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 13));
-        button.setForeground(new Color(244, 244, 245));
+        button.setForeground(Theme.TEXT_DARK);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.putClientProperty(FlatClientProperties.STYLE, ""
-                + "arc:10;background:rgb(39,39,42);hoverBackground:rgb(63,63,70);borderWidth:0;margin:8,16,8,16");
+                + "arc:10;background:rgb(224,224,224);hoverBackground:rgb(200,200,200);borderWidth:0;margin:8,16,8,16");
     }
 
     private void styleDangerButton(JButton button) {
@@ -214,6 +216,6 @@ public class ManageUsersPanel extends JFrame {
         button.setForeground(Color.WHITE);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.putClientProperty(FlatClientProperties.STYLE, ""
-                + "arc:10;background:rgb(220,38,38);hoverBackground:rgb(185,28,28);borderWidth:0;margin:8,16,8,16");
+                + "arc:10;background:rgb(211,47,47);hoverBackground:rgb(183,28,28);borderWidth:0;margin:8,16,8,16");
     }
 }

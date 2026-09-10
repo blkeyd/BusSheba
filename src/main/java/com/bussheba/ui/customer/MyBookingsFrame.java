@@ -10,6 +10,7 @@ import com.bussheba.model.Seat;
 import com.bussheba.model.Trip;
 import com.bussheba.model.User;
 import com.bussheba.service.BookingService;
+import com.bussheba.ui.components.Theme;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.fonts.roboto.FlatRobotoFont;
 
@@ -18,13 +19,16 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Customer flow: view your own booking history and cancel a still-confirmed
- * booking. Cancelling goes through BookingService.cancelBooking(), the same
- * transactional method that frees the seat back up atomically.
+ * Customer's booking history — light/teal theme. Deliberately shows ONLY
+ * CONFIRMED bookings: once cancelled, a booking drops out of this list
+ * entirely rather than sticking around with a "CANCELLED" label. The row
+ * still exists in the database (for admin's revenue history) — this
+ * screen just chooses not to surface it to the customer anymore.
  */
 public class MyBookingsFrame extends JFrame {
 
@@ -42,7 +46,6 @@ public class MyBookingsFrame extends JFrame {
     private List<Booking> currentBookings;
 
     private JButton btnCancel;
-    private JButton btnRefresh;
 
     public MyBookingsFrame(User currentUser) {
         this.currentUser = currentUser;
@@ -53,19 +56,26 @@ public class MyBookingsFrame extends JFrame {
     private void initUI() {
         setTitle("BusSheba - My Bookings");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(750, 500);
+        setSize(780, 500);
         setLocationRelativeTo(null);
 
-        getContentPane().setBackground(new Color(24, 24, 27));
-        setLayout(new BorderLayout(10, 10));
+        getContentPane().setBackground(Theme.BG_LIGHT);
+        setLayout(new BorderLayout());
 
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(Theme.TEAL_PRIMARY);
+        header.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
         JLabel lblTitle = new JLabel("My Bookings");
-        lblTitle.setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 20));
-        lblTitle.setForeground(new Color(244, 244, 245));
-        lblTitle.setBorder(BorderFactory.createEmptyBorder(15, 15, 5, 15));
-        add(lblTitle, BorderLayout.NORTH);
+        lblTitle.setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 18));
+        lblTitle.setForeground(Theme.TEXT_ON_TEAL);
+        header.add(lblTitle, BorderLayout.WEST);
+        add(header, BorderLayout.NORTH);
 
-        String[] columns = {"Booking #", "Route", "Departure", "Seat", "Amount", "Status"};
+        JPanel centerWrap = new JPanel(new BorderLayout());
+        centerWrap.setBackground(Theme.BG_LIGHT);
+        centerWrap.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        String[] columns = {"Booking #", "Route", "Departure", "Seat", "Amount"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -73,39 +83,58 @@ public class MyBookingsFrame extends JFrame {
             }
         };
         bookingTable = new JTable(tableModel);
-        bookingTable.setRowHeight(28);
+        bookingTable.setRowHeight(30);
+        bookingTable.setFont(new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 13));
+        bookingTable.getTableHeader().setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 12));
+        bookingTable.getTableHeader().setBackground(Theme.TEAL_LIGHT);
+        bookingTable.setSelectionBackground(Theme.TEAL_LIGHT);
+        bookingTable.setSelectionForeground(Theme.TEXT_DARK);
         bookingTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         bookingTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                updateCancelButtonState();
+                btnCancel.setEnabled(bookingTable.getSelectedRow() >= 0);
             }
         });
 
+        JPanel tableWrap = new JPanel(new BorderLayout());
+        tableWrap.setBackground(Theme.CARD_WHITE);
+        tableWrap.setBorder(BorderFactory.createLineBorder(Theme.BORDER_LIGHT, 1, true));
         JScrollPane scrollPane = new JScrollPane(bookingTable);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
-        add(scrollPane, BorderLayout.CENTER);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        tableWrap.add(scrollPane, BorderLayout.CENTER);
+        centerWrap.add(tableWrap, BorderLayout.CENTER);
 
-        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        bottomRow.setBackground(new Color(24, 24, 27));
-        bottomRow.setBorder(BorderFactory.createEmptyBorder(0, 15, 15, 15));
-
-        btnRefresh = new JButton("Refresh");
-        styleSecondaryButton(btnRefresh);
-        btnRefresh.addActionListener(e -> loadBookings());
-        bottomRow.add(btnRefresh);
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 10));
+        bottomRow.setBackground(Theme.BG_LIGHT);
 
         btnCancel = new JButton("Cancel Selected Booking");
-        styleDangerButton(btnCancel);
+        btnCancel.setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 13));
+        btnCancel.setForeground(Color.WHITE);
+        btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnCancel.setEnabled(false);
+        btnCancel.putClientProperty(FlatClientProperties.STYLE, ""
+                + "arc:8;background:rgb(211,47,47);hoverBackground:rgb(183,28,28);"
+                + "disabledBackground:rgb(224,224,224);borderWidth:0;margin:8,16,8,16");
         btnCancel.addActionListener(e -> onCancelBooking());
         bottomRow.add(btnCancel);
 
-        add(bottomRow, BorderLayout.SOUTH);
+        centerWrap.add(bottomRow, BorderLayout.SOUTH);
+        add(centerWrap, BorderLayout.CENTER);
     }
 
     private void loadBookings() {
         try {
-            currentBookings = bookingDAO.findByUserId(currentUser.getId());
+            List<Booking> allBookings = bookingDAO.findByUserId(currentUser.getId());
+
+            // Only show CONFIRMED bookings — cancelled ones disappear from
+            // this view entirely, even though the row still exists in the DB.
+            currentBookings = new ArrayList<>();
+            for (Booking booking : allBookings) {
+                if (booking.getStatus() == Booking.Status.CONFIRMED) {
+                    currentBookings.add(booking);
+                }
+            }
+
             tableModel.setRowCount(0);
 
             for (Booking booking : currentBookings) {
@@ -131,31 +160,16 @@ public class MyBookingsFrame extends JFrame {
                 }
 
                 tableModel.addRow(new Object[]{
-                        "#" + booking.getId(),
-                        routeLabel,
-                        departureLabel,
-                        seatLabel,
-                        booking.getTotalAmount(),
-                        booking.getStatus()
+                        "#" + booking.getId(), routeLabel, departureLabel, seatLabel, booking.getTotalAmount()
                 });
             }
 
-            updateCancelButtonState();
+            btnCancel.setEnabled(false);
 
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "Failed to load bookings: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private void updateCancelButtonState() {
-        int row = bookingTable.getSelectedRow();
-        if (row < 0 || currentBookings == null || row >= currentBookings.size()) {
-            btnCancel.setEnabled(false);
-            return;
-        }
-        Booking selected = currentBookings.get(row);
-        btnCancel.setEnabled(selected.getStatus() == Booking.Status.CONFIRMED);
     }
 
     private void onCancelBooking() {
@@ -187,29 +201,5 @@ public class MyBookingsFrame extends JFrame {
             JOptionPane.showMessageDialog(this, "Database error: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private void styleSecondaryButton(JButton button) {
-        button.setFont(new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 13));
-        button.setForeground(new Color(244, 244, 245));
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.putClientProperty(FlatClientProperties.STYLE, ""
-                + "arc:10;"
-                + "background:rgb(39,39,42);"
-                + "hoverBackground:rgb(63,63,70);"
-                + "borderWidth:0;"
-                + "margin:8,16,8,16");
-    }
-
-    private void styleDangerButton(JButton button) {
-        button.setFont(new Font(FlatRobotoFont.FAMILY, Font.BOLD, 13));
-        button.setForeground(Color.WHITE);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.putClientProperty(FlatClientProperties.STYLE, ""
-                + "arc:10;"
-                + "background:rgb(220,38,38);"
-                + "hoverBackground:rgb(185,28,28);"
-                + "borderWidth:0;"
-                + "margin:8,16,8,16");
     }
 }
